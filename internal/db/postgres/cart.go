@@ -1,8 +1,11 @@
 package postgres
 
 import (
+	cart_errors "cart-api/internal/errors"
 	"cart-api/internal/models"
 	"context"
+	"database/sql"
+	"errors"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -24,7 +27,7 @@ func (r *CartRepository) Create(ctx context.Context) (*models.Cart, error) {
 	query := `INSERT INTO carts DEFAULT VALUES RETURNING id`
 	err := r.db.QueryRowxContext(ctx, query).Scan(&cart.ID)
 	if err != nil {
-		return nil, err
+		return nil, cart_errors.ErrFailedPostgresOpperation
 	}
 	cart.Items = []models.CartItem{}
 	return &cart, nil
@@ -35,15 +38,20 @@ func (r *CartRepository) Get(ctx context.Context, id string) (*models.Cart, erro
 	var cart models.Cart
 	query := `SELECT id FROM carts WHERE id = $1`
 	err := r.db.GetContext(ctx, &cart, query, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, cart_errors.ErrCartDoesNotExist
+	}
 	if err != nil {
-		return nil, err
+		return nil, cart_errors.ErrFailedToRetrieveCart
 	}
 
 	itemsQuery := `SELECT id, cart_id, product, quantity FROM cart_items WHERE cart_id = $1`
 	err = r.db.SelectContext(ctx, &cart.Items, itemsQuery, id)
-	if err != nil {
-		return nil, err
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, cart_errors.ErrCartDoesNotExist
 	}
-
+	if err != nil {
+		return nil, cart_errors.ErrFailedToRetrieveCartItems
+	}
 	return &cart, nil
 }

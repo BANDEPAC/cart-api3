@@ -1,23 +1,13 @@
 package handler
 
 import (
+	cart_errors "cart-api/internal/errors"
 	"cart-api/internal/models"
 	"context"
 	"encoding/json"
-	"errors"
 	"log"
 	"net/http"
 	"strings"
-)
-
-// Custom errors for handling specific scenarios.
-var (
-	ErrInvalidRequestMethod = errors.New("invalid request method")
-	ErrCartDoesNotExist     = errors.New("cart doesn't exist")
-	ErrInvalidRequestBody   = errors.New("invalid request body")
-	ErrInvalidQuery         = errors.New("invalid query")
-	ErrCartIDRequired       = errors.New("cartID is required")
-	ErrItemIDRequired       = errors.New("itemID is required")
 )
 
 // CartService defines the interface for cart-related operations.
@@ -47,7 +37,7 @@ func NewCartHandler(c CartService, ci CartItemService) *CartHandler {
 func (h *CartHandler) CreateCart(w http.ResponseWriter, r *http.Request) {
 	log.Println("CreateCart is called")
 	if r.Method != http.MethodPost {
-		http.Error(w, ErrInvalidRequestMethod.Error(), http.StatusMethodNotAllowed)
+		http.Error(w, cart_errors.ErrInvalidRequestMethod.Error(), http.StatusMethodNotAllowed)
 		return
 	}
 	cart, err := h.cartService.CreateCart(r.Context())
@@ -67,7 +57,7 @@ func (h *CartHandler) CreateCart(w http.ResponseWriter, r *http.Request) {
 func (h *CartHandler) ViewCart(w http.ResponseWriter, r *http.Request) {
 	log.Println("ViewCart is called")
 	if r.Method != http.MethodGet {
-		http.Error(w, ErrInvalidRequestMethod.Error(), http.StatusMethodNotAllowed)
+		http.Error(w, cart_errors.ErrInvalidRequestMethod.Error(), http.StatusMethodNotAllowed)
 		return
 	}
 	cartID := r.URL.Path[len("/carts/"):]
@@ -75,7 +65,7 @@ func (h *CartHandler) ViewCart(w http.ResponseWriter, r *http.Request) {
 
 	cart, err := h.cartService.ViewCart(r.Context(), cartID)
 	if err != nil {
-		http.Error(w, ErrCartDoesNotExist.Error(), http.StatusNotFound)
+		http.Error(w, cart_errors.ErrCartDoesNotExist.Error(), http.StatusNotFound)
 		return
 	}
 
@@ -90,14 +80,14 @@ func (h *CartHandler) ViewCart(w http.ResponseWriter, r *http.Request) {
 func (h *CartHandler) AddToCart(w http.ResponseWriter, r *http.Request) {
 	log.Println("AddToCart is called")
 	if r.Method != http.MethodPost {
-		http.Error(w, ErrInvalidRequestMethod.Error(), http.StatusMethodNotAllowed)
+		http.Error(w, cart_errors.ErrInvalidRequestMethod.Error(), http.StatusMethodNotAllowed)
 		return
 	}
 	cartID := strings.Split(r.URL.Path, "/")[2]
 	log.Println("Extracted id: ", cartID)
 
 	if cartID == "" {
-		http.Error(w, ErrInvalidQuery.Error(), http.StatusBadRequest)
+		http.Error(w, cart_errors.ErrInvalidQuery.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -107,7 +97,7 @@ func (h *CartHandler) AddToCart(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		http.Error(w, ErrInvalidRequestBody.Error(), http.StatusBadRequest)
+		http.Error(w, cart_errors.ErrInvalidRequestBody.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -129,7 +119,7 @@ func (h *CartHandler) AddToCart(w http.ResponseWriter, r *http.Request) {
 func (h *CartHandler) RemoveFromCart(w http.ResponseWriter, r *http.Request) {
 	log.Println("RemoveFromCart is called")
 	if r.Method != http.MethodDelete {
-		http.Error(w, ErrInvalidRequestMethod.Error(), http.StatusMethodNotAllowed)
+		http.Error(w, cart_errors.ErrInvalidRequestMethod.Error(), http.StatusMethodNotAllowed)
 		return
 	}
 	paths := strings.Split(r.URL.Path, "/")
@@ -139,18 +129,18 @@ func (h *CartHandler) RemoveFromCart(w http.ResponseWriter, r *http.Request) {
 	log.Println("Extracted itemID: ", itemID)
 
 	if cartID == "" {
-		http.Error(w, ErrCartIDRequired.Error(), http.StatusBadRequest)
+		http.Error(w, cart_errors.ErrCartIDRequired.Error(), http.StatusBadRequest)
 		return
 	}
 	if itemID == "" {
-		http.Error(w, ErrItemIDRequired.Error(), http.StatusBadRequest)
+		http.Error(w, cart_errors.ErrItemIDRequired.Error(), http.StatusBadRequest)
 		return
 	}
 
 	err := h.cartItemService.RemoveFromCart(r.Context(), cartID, itemID)
 	if err != nil {
 		if err.Error() == "cart does not exist" {
-			http.Error(w, ErrCartDoesNotExist.Error(), http.StatusNotFound)
+			http.Error(w, cart_errors.ErrCartDoesNotExist.Error(), http.StatusNotFound)
 			return
 		}
 		http.Error(w, "Internal server error", http.StatusInternalServerError)

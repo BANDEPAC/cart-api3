@@ -1,9 +1,9 @@
 package postgres
 
 import (
+	cart_errors "cart-api/internal/errors"
 	"cart-api/internal/models"
 	"context"
-	"errors"
 	"log"
 
 	"github.com/jmoiron/sqlx"
@@ -26,7 +26,7 @@ func (r *CartItemRepository) Create(ctx context.Context, item *models.CartItem) 
 	var id string
 	err := r.db.QueryRowContext(ctx, query, item.CartID, item.Product, item.Quantity).Scan(&id)
 	if err != nil {
-		return err
+		return cart_errors.ErrFailedPostgresOpperation
 	}
 
 	item.ID = id
@@ -40,7 +40,7 @@ func (r *CartItemRepository) CartExists(ctx context.Context, cartID string) (boo
 	query := `SELECT EXISTS(SELECT 1 FROM carts WHERE id = $1)`
 	err := r.db.QueryRowxContext(ctx, query, cartID).Scan(&exists)
 	if err != nil {
-		return false, err
+		return false, cart_errors.ErrFailedPostgresOpperation
 	}
 	return exists, nil
 }
@@ -54,7 +54,7 @@ func (r *CartItemRepository) Delete(ctx context.Context, cartID, cartItemID stri
 		return err
 	}
 	if !exists {
-		return errors.New("cart does not exist")
+		return cart_errors.ErrNotFound
 	}
 	log.Println("id : ", cartItemID, "cart_id : ", cartID)
 	query := `DELETE FROM cart_items WHERE id = $1 AND cart_id = $2`
