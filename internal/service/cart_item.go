@@ -1,6 +1,7 @@
 package service
 
 import (
+	cart_errors "cart-api/internal/errors"
 	"cart-api/internal/models"
 	"context"
 )
@@ -25,6 +26,12 @@ func NewCartItemRepository(repo CartItemStorage) *CartItemService {
 // AddToCart adds a new item to the cart.
 // It delegates the operation to the underlying storage.
 func (s CartItemService) AddToCart(ctx context.Context, item *models.CartItem) error {
+	if item.Product == "" {
+		return cart_errors.ErrMissingProduct
+	}
+	if item.Quantity < 0 {
+		return cart_errors.ErrQuantityMustBePositive
+	}
 	err := s.repo.Create(ctx, item)
 	if err != nil {
 		return err

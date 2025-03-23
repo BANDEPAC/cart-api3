@@ -14,4 +14,6 @@ var (
 	ErrFailedToRetrieveCart      = errors.New("failed to retrieve cart")
 	ErrFailedToRetrieveCartItems = errors.New("failed to retrieve cart items")
 	ErrFailedPostgresOpperation  = errors.New("failed to make a query to postgres")
+	ErrQuantityMustBePositive    = errors.New("Quantity must be positive")
+	ErrMissingProduct            = errors.New("Missing product")
 )
