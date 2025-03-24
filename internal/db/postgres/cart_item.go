@@ -1,9 +1,10 @@
 package postgres
 
 import (
-	cart_errors "cart-api/internal/errors"
-	"cart-api/internal/models"
+	"cart-api/internal/carterror"
+	"cart-api/internal/model"
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/jmoiron/sqlx"
@@ -21,12 +22,19 @@ func NewCartItemRepository(db *sqlx.DB) *CartItemRepository {
 
 // Create inserts a new cart item into the database.
 // It returns an error if the operation fails.
-func (r *CartItemRepository) Create(ctx context.Context, item *models.CartItem) error {
+func (r *CartItemRepository) Create(ctx context.Context, item *model.CartItem) error {
+	exists, err := r.CartExists(ctx, item.CartID)
+	if err != nil {
+		return fmt.Errorf("Create: %w", err)
+	}
+	if !exists {
+		return carterror.ErrCartDoesNotExist
+	}
 	query := `INSERT INTO cart_items (cart_id, product, quantity) VALUES ($1, $2, $3) RETURNING id`
 	var id string
-	err := r.db.QueryRowContext(ctx, query, item.CartID, item.Product, item.Quantity).Scan(&id)
+	err = r.db.QueryRowContext(ctx, query, item.CartID, item.Product, item.Quantity).Scan(&id)
 	if err != nil {
-		return cart_errors.ErrFailedPostgresOpperation
+		return err
 	}
 
 	item.ID = id
@@ -40,7 +48,7 @@ func (r *CartItemRepository) CartExists(ctx context.Context, cartID string) (boo
 	query := `SELECT EXISTS(SELECT 1 FROM carts WHERE id = $1)`
 	err := r.db.QueryRowxContext(ctx, query, cartID).Scan(&exists)
 	if err != nil {
-		return false, cart_errors.ErrFailedPostgresOpperation
+		return false, err
 	}
 	return exists, nil
 }
@@ -54,7 +62,7 @@ func (r *CartItemRepository) Delete(ctx context.Context, cartID, cartItemID stri
 		return err
 	}
 	if !exists {
-		return cart_errors.ErrNotFound
+		return carterror.ErrNotFound
 	}
 	log.Println("id : ", cartItemID, "cart_id : ", cartID)
 	query := `DELETE FROM cart_items WHERE id = $1 AND cart_id = $2`

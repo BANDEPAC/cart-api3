@@ -1,7 +1,7 @@
 package service_test
 
 import (
-	"cart-api/internal/models"
+	"cart-api/internal/model"
 	"cart-api/internal/service"
 	"context"
 	"errors"
@@ -11,23 +11,23 @@ import (
 )
 
 type mockCartStorage struct {
-	createCartResult *models.Cart
+	createCartResult *model.Cart
 	createCartErr    error
-	getCartResult    *models.Cart
+	getCartResult    *model.Cart
 	getCartErr       error
 }
 
-func (m *mockCartStorage) Create(ctx context.Context) (*models.Cart, error) {
+func (m *mockCartStorage) Create(ctx context.Context) (*model.Cart, error) {
 	return m.createCartResult, m.createCartErr
 }
 
-func (m *mockCartStorage) Get(ctx context.Context, id string) (*models.Cart, error) {
+func (m *mockCartStorage) Get(ctx context.Context, id string) (*model.Cart, error) {
 	return m.getCartResult, m.getCartErr
 }
 
 func TestCreateCart_Success(t *testing.T) {
 	mockRepo := &mockCartStorage{
-		createCartResult: &models.Cart{ID: "cart-id"},
+		createCartResult: &model.Cart{ID: "cart-id"},
 		createCartErr:    nil,
 	}
 
@@ -55,7 +55,7 @@ func TestCreateCart_Error(t *testing.T) {
 
 func TestViewCart_Success(t *testing.T) {
 	mockRepo := &mockCartStorage{
-		getCartResult: &models.Cart{ID: "cart-id"},
+		getCartResult: &model.Cart{ID: "cart-id"},
 		getCartErr:    nil,
 	}
 

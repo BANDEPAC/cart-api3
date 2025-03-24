@@ -1,14 +1,14 @@
 package service
 
 import (
-	"cart-api/internal/models"
+	"cart-api/internal/model"
 	"context"
 )
 
 // CartStorage defines the interface for interacting with cart storage
 type CartStorage interface {
-	Create(ctx context.Context) (*models.Cart, error)
-	Get(ctx context.Context, id string) (*models.Cart, error)
+	Create(ctx context.Context) (*model.Cart, error)
+	Get(ctx context.Context, id string) (*model.Cart, error)
 }
 
 // CartService provides business logic for managing carts.
@@ -24,7 +24,7 @@ func NewCartService(repo CartStorage) *CartService {
 
 // CreateCart creates a new cart
 // It delegates the operation to the underlying storage.
-func (s *CartService) CreateCart(ctx context.Context) (*models.Cart, error) {
+func (s *CartService) CreateCart(ctx context.Context) (*model.Cart, error) {
 	cart, err := s.repo.Create(ctx)
 	if err != nil {
 		return nil, err
@@ -35,7 +35,7 @@ func (s *CartService) CreateCart(ctx context.Context) (*models.Cart, error) {
 
 // CreateCart retrieves a cart by its ID,including all associated items.
 // It delegates the operation to the underlying storage.
-func (s *CartService) ViewCart(ctx context.Context, id string) (*models.Cart, error) {
+func (s *CartService) ViewCart(ctx context.Context, id string) (*model.Cart, error) {
 	cart, err := s.repo.Get(ctx, id)
 	if err != nil {
 		return nil, err
