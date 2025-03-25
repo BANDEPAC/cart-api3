@@ -2,7 +2,7 @@ package handler_test
 
 import (
 	"bytes"
-	"cart-api/internal/models"
+	"cart-api/internal/model"
 	handler "cart-api/internal/transport/http"
 	"context"
 	"encoding/json"
@@ -19,21 +19,21 @@ type MockCartService struct {
 	mock.Mock
 }
 
-func (m *MockCartService) CreateCart(ctx context.Context) (*models.Cart, error) {
+func (m *MockCartService) CreateCart(ctx context.Context) (*model.Cart, error) {
 	args := m.Called(ctx)
-	return args.Get(0).(*models.Cart), args.Error(1)
+	return args.Get(0).(*model.Cart), args.Error(1)
 }
 
-func (m *MockCartService) ViewCart(ctx context.Context, id string) (*models.Cart, error) {
+func (m *MockCartService) ViewCart(ctx context.Context, id string) (*model.Cart, error) {
 	args := m.Called(ctx, id)
-	return args.Get(0).(*models.Cart), args.Error(1)
+	return args.Get(0).(*model.Cart), args.Error(1)
 }
 
 type MockCartItemService struct {
 	mock.Mock
 }
 
-func (m *MockCartItemService) AddToCart(ctx context.Context, item *models.CartItem) error {
+func (m *MockCartItemService) AddToCart(ctx context.Context, item *model.CartItem) error {
 	args := m.Called(ctx, item)
 	return args.Error(0)
 }
@@ -48,7 +48,7 @@ func TestCreateCart(t *testing.T) {
 	mockCartItemService := new(MockCartItemService)
 	h := handler.NewCartHandler(mockCartService, mockCartItemService)
 
-	cart := &models.Cart{ID: "123", Items: []models.CartItem{}}
+	cart := &model.Cart{ID: "123", Items: []model.CartItem{}}
 	mockCartService.On("CreateCart", mock.Anything).Return(cart, nil)
 
 	r := httptest.NewRequest(http.MethodPost, "/carts", nil)
@@ -59,7 +59,7 @@ func TestCreateCart(t *testing.T) {
 	defer res.Body.Close()
 
 	assert.Equal(t, http.StatusOK, res.StatusCode)
-	var got models.Cart
+	var got model.Cart
 	if err := json.NewDecoder(res.Body).Decode(&got); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
@@ -71,7 +71,7 @@ func TestViewCart_NotFound(t *testing.T) {
 	mockCartItemService := new(MockCartItemService)
 	h := handler.NewCartHandler(mockCartService, mockCartItemService)
 
-	mockCartService.On("ViewCart", mock.Anything, "123").Return((*models.Cart)(nil), errors.New("not found"))
+	mockCartService.On("ViewCart", mock.Anything, "123").Return((*model.Cart)(nil), errors.New("not found"))
 
 	r := httptest.NewRequest(http.MethodGet, "/carts/123", nil)
 	w := httptest.NewRecorder()
@@ -88,7 +88,7 @@ func TestAddToCart(t *testing.T) {
 	mockCartItemService := new(MockCartItemService)
 	h := handler.NewCartHandler(mockCartService, mockCartItemService)
 
-	item := models.CartItem{CartID: "123", Product: "Apple", Quantity: 2}
+	item := model.CartItem{CartID: "123", Product: "Apple", Quantity: 2}
 	mockCartItemService.On("AddToCart", mock.Anything, &item).Return(nil)
 
 	body, _ := json.Marshal(item)

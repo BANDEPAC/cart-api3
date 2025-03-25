@@ -5,9 +5,13 @@ import (
 	"cart-api/internal/db/postgres"
 	"cart-api/internal/service"
 	handler "cart-api/internal/transport/http"
+	"context"
 	"log"
 	"net/http"
-	"strings"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 // Run initializes the application by loading configuration, connecting to the database,
@@ -32,30 +36,36 @@ func Run() {
 
 	router := http.NewServeMux()
 
-	router.HandleFunc("/carts", cartHandler.CreateCart)
-	router.HandleFunc("/carts/", func(w http.ResponseWriter, r *http.Request) {
-		pathParts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	router.Handle("POST /carts", http.HandlerFunc(cartHandler.CreateCart))
+	router.Handle("GET /carts/{id}", http.HandlerFunc(cartHandler.ViewCart))
+	router.Handle("POST /carts/{id}/items", http.HandlerFunc(cartHandler.AddToCart))
+	router.Handle("DELETE /carts/{id}/items/{item_id}", http.HandlerFunc(cartHandler.RemoveFromCart))
 
-		log.Println("Parsed path:", pathParts)
+	srv := &http.Server{
+		Addr:    ":" + cfg.ServerPort,
+		Handler: router,
+	}
 
-		if len(pathParts) < 2 || pathParts[0] != "carts" {
-			http.Error(w, "Invalid path", http.StatusBadRequest)
-			return
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		log.Printf("Server is running on port %s", cfg.ServerPort)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Could not listen on %s: %v", cfg.ServerPort, err)
 		}
+	}()
 
-		switch {
-		case len(pathParts) == 2 && r.Method == http.MethodGet:
-			cartHandler.ViewCart(w, r)
-		case len(pathParts) == 3 && pathParts[2] == "items" && r.Method == http.MethodPost:
-			cartHandler.AddToCart(w, r)
-		case len(pathParts) == 4 && pathParts[2] == "items" && r.Method == http.MethodDelete:
-			cartHandler.RemoveFromCart(w, r)
+	<-stop
+	log.Println("Shutting down server...")
 
-		default:
-			http.Error(w, "Invalid request method or path", http.StatusMethodNotAllowed)
-		}
-	})
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	log.Printf("Server is running on port %s", cfg.ServerPort)
-	log.Fatal(http.ListenAndServe(":"+cfg.ServerPort, router))
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("Server forced to shutdown: %v", err)
+	}
+
+	log.Println("Server stopped gracefully")
+
 }

@@ -1,8 +1,8 @@
 package postgres
 
 import (
-	cart_errors "cart-api/internal/errors"
-	"cart-api/internal/models"
+	"cart-api/internal/carterror"
+	"cart-api/internal/model"
 	"context"
 	"database/sql"
 	"errors"
@@ -22,36 +22,36 @@ func NewCartRepository(db *sqlx.DB) *CartRepository {
 
 // Create inserts a new cart into the database and returns the created cart.
 // The cart is initialized with an empty list of items.
-func (r *CartRepository) Create(ctx context.Context) (*models.Cart, error) {
-	var cart models.Cart
+func (r *CartRepository) Create(ctx context.Context) (*model.Cart, error) {
+	var cart model.Cart
 	query := `INSERT INTO carts DEFAULT VALUES RETURNING id`
 	err := r.db.QueryRowxContext(ctx, query).Scan(&cart.ID)
 	if err != nil {
-		return nil, cart_errors.ErrFailedPostgresOpperation
+		return nil, carterror.ErrFailedPostgresOpperation
 	}
-	cart.Items = []models.CartItem{}
+	cart.Items = []model.CartItem{}
 	return &cart, nil
 }
 
 // Get retrieves a cart by its ID, including all associated cart items.
-func (r *CartRepository) Get(ctx context.Context, id string) (*models.Cart, error) {
-	var cart models.Cart
+func (r *CartRepository) Get(ctx context.Context, id string) (*model.Cart, error) {
+	var cart model.Cart
 	query := `SELECT id FROM carts WHERE id = $1`
 	err := r.db.GetContext(ctx, &cart, query, id)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, cart_errors.ErrCartDoesNotExist
+		return nil, carterror.ErrCartDoesNotExist
 	}
 	if err != nil {
-		return nil, cart_errors.ErrFailedToRetrieveCart
+		return nil, carterror.ErrFailedToRetrieveCart
 	}
 
 	itemsQuery := `SELECT id, cart_id, product, quantity FROM cart_items WHERE cart_id = $1`
 	err = r.db.SelectContext(ctx, &cart.Items, itemsQuery, id)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, cart_errors.ErrCartDoesNotExist
+		return nil, carterror.ErrCartDoesNotExist
 	}
 	if err != nil {
-		return nil, cart_errors.ErrFailedToRetrieveCartItems
+		return nil, carterror.ErrFailedToRetrieveCartItems
 	}
 	return &cart, nil
 }

@@ -1,7 +1,7 @@
 package service_test
 
 import (
-	"cart-api/internal/models"
+	"cart-api/internal/model"
 	"cart-api/internal/service"
 	"context"
 	"errors"
@@ -15,7 +15,7 @@ type mockCartItemStorage struct {
 	deleteErr error
 }
 
-func (m *mockCartItemStorage) Create(ctx context.Context, item *models.CartItem) error {
+func (m *mockCartItemStorage) Create(ctx context.Context, item *model.CartItem) error {
 	return m.createErr
 }
 
@@ -30,7 +30,7 @@ func TestAddToCart_Success(t *testing.T) {
 
 	service := service.NewCartItemRepository(mockRepo)
 
-	item := &models.CartItem{
+	item := &model.CartItem{
 		CartID:   "cart-id",
 		Product:  "product1",
 		Quantity: 2,
@@ -47,7 +47,7 @@ func TestAddToCart_Error(t *testing.T) {
 
 	service := service.NewCartItemRepository(mockRepo)
 
-	item := &models.CartItem{
+	item := &model.CartItem{
 		CartID:   "cart-id",
 		Product:  "product1",
 		Quantity: 2,

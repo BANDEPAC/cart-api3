@@ -2,7 +2,7 @@ package postgres_test
 
 import (
 	"cart-api/internal/db/postgres"
-	"cart-api/internal/models"
+	"cart-api/internal/model"
 	"context"
 	"testing"
 
@@ -21,7 +21,7 @@ func TestCreateCartItem(t *testing.T) {
 	sqlxDB := sqlx.NewDb(db, "sqlmock")
 	repo := postgres.NewCartItemRepository(sqlxDB)
 
-	item := &models.CartItem{
+	item := &model.CartItem{
 		CartID:   "cart-id",
 		Product:  "product1",
 		Quantity: 2,

@@ -1,13 +1,14 @@
 package service
 
 import (
-	"cart-api/internal/models"
+	"cart-api/internal/carterror"
+	"cart-api/internal/model"
 	"context"
 )
 
 // CartItemStorage defines the interface for interacting with cart item storage.
 type CartItemStorage interface {
-	Create(ctx context.Context, item *models.CartItem) error
+	Create(ctx context.Context, item *model.CartItem) error
 	Delete(ctx context.Context, CartID, CartItemID string) error
 }
 
@@ -24,7 +25,13 @@ func NewCartItemRepository(repo CartItemStorage) *CartItemService {
 
 // AddToCart adds a new item to the cart.
 // It delegates the operation to the underlying storage.
-func (s CartItemService) AddToCart(ctx context.Context, item *models.CartItem) error {
+func (s CartItemService) AddToCart(ctx context.Context, item *model.CartItem) error {
+	if item.Product == "" {
+		return carterror.ErrMissingProduct
+	}
+	if item.Quantity < 0 {
+		return carterror.ErrQuantityMustBePositive
+	}
 	err := s.repo.Create(ctx, item)
 	if err != nil {
 		return err

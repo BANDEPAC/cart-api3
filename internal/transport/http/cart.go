@@ -1,8 +1,8 @@
 package handler
 
 import (
-	cart_errors "cart-api/internal/errors"
-	"cart-api/internal/models"
+	"cart-api/internal/carterror"
+	"cart-api/internal/model"
 	"context"
 	"encoding/json"
 	"log"
@@ -12,13 +12,13 @@ import (
 
 // CartService defines the interface for cart-related operations.
 type CartService interface {
-	CreateCart(ctx context.Context) (*models.Cart, error)
-	ViewCart(ctx context.Context, cartID string) (*models.Cart, error)
+	CreateCart(ctx context.Context) (*model.Cart, error)
+	ViewCart(ctx context.Context, cartID string) (*model.Cart, error)
 }
 
 // CartItemService defines the interface for cart item-related operations.
 type CartItemService interface {
-	AddToCart(ctx context.Context, item *models.CartItem) error
+	AddToCart(ctx context.Context, item *model.CartItem) error
 	RemoveFromCart(ctx context.Context, cartID, itemID string) error
 }
 
@@ -37,7 +37,7 @@ func NewCartHandler(c CartService, ci CartItemService) *CartHandler {
 func (h *CartHandler) CreateCart(w http.ResponseWriter, r *http.Request) {
 	log.Println("CreateCart is called")
 	if r.Method != http.MethodPost {
-		http.Error(w, cart_errors.ErrInvalidRequestMethod.Error(), http.StatusMethodNotAllowed)
+		http.Error(w, carterror.ErrInvalidRequestMethod.Error(), http.StatusMethodNotAllowed)
 		return
 	}
 	cart, err := h.cartService.CreateCart(r.Context())
@@ -57,7 +57,7 @@ func (h *CartHandler) CreateCart(w http.ResponseWriter, r *http.Request) {
 func (h *CartHandler) ViewCart(w http.ResponseWriter, r *http.Request) {
 	log.Println("ViewCart is called")
 	if r.Method != http.MethodGet {
-		http.Error(w, cart_errors.ErrInvalidRequestMethod.Error(), http.StatusMethodNotAllowed)
+		http.Error(w, carterror.ErrInvalidRequestMethod.Error(), http.StatusMethodNotAllowed)
 		return
 	}
 	cartID := r.URL.Path[len("/carts/"):]
@@ -65,7 +65,7 @@ func (h *CartHandler) ViewCart(w http.ResponseWriter, r *http.Request) {
 
 	cart, err := h.cartService.ViewCart(r.Context(), cartID)
 	if err != nil {
-		http.Error(w, cart_errors.ErrCartDoesNotExist.Error(), http.StatusNotFound)
+		http.Error(w, carterror.ErrCartDoesNotExist.Error(), http.StatusNotFound)
 		return
 	}
 
@@ -80,14 +80,14 @@ func (h *CartHandler) ViewCart(w http.ResponseWriter, r *http.Request) {
 func (h *CartHandler) AddToCart(w http.ResponseWriter, r *http.Request) {
 	log.Println("AddToCart is called")
 	if r.Method != http.MethodPost {
-		http.Error(w, cart_errors.ErrInvalidRequestMethod.Error(), http.StatusMethodNotAllowed)
+		http.Error(w, carterror.ErrInvalidRequestMethod.Error(), http.StatusMethodNotAllowed)
 		return
 	}
 	cartID := strings.Split(r.URL.Path, "/")[2]
 	log.Println("Extracted id: ", cartID)
 
 	if cartID == "" {
-		http.Error(w, cart_errors.ErrInvalidQuery.Error(), http.StatusBadRequest)
+		http.Error(w, carterror.ErrInvalidQuery.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -97,11 +97,11 @@ func (h *CartHandler) AddToCart(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		http.Error(w, cart_errors.ErrInvalidRequestBody.Error(), http.StatusBadRequest)
+		http.Error(w, carterror.ErrInvalidRequestBody.Error(), http.StatusBadRequest)
 		return
 	}
 
-	item := models.CartItem{ID: "", CartID: cartID, Product: request.Product, Quantity: request.Quantity}
+	item := model.CartItem{ID: "", CartID: cartID, Product: request.Product, Quantity: request.Quantity}
 	err := h.cartItemService.AddToCart(r.Context(), &item)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -119,7 +119,7 @@ func (h *CartHandler) AddToCart(w http.ResponseWriter, r *http.Request) {
 func (h *CartHandler) RemoveFromCart(w http.ResponseWriter, r *http.Request) {
 	log.Println("RemoveFromCart is called")
 	if r.Method != http.MethodDelete {
-		http.Error(w, cart_errors.ErrInvalidRequestMethod.Error(), http.StatusMethodNotAllowed)
+		http.Error(w, carterror.ErrInvalidRequestMethod.Error(), http.StatusMethodNotAllowed)
 		return
 	}
 	paths := strings.Split(r.URL.Path, "/")
@@ -129,18 +129,18 @@ func (h *CartHandler) RemoveFromCart(w http.ResponseWriter, r *http.Request) {
 	log.Println("Extracted itemID: ", itemID)
 
 	if cartID == "" {
-		http.Error(w, cart_errors.ErrCartIDRequired.Error(), http.StatusBadRequest)
+		http.Error(w, carterror.ErrCartIDRequired.Error(), http.StatusBadRequest)
 		return
 	}
 	if itemID == "" {
-		http.Error(w, cart_errors.ErrItemIDRequired.Error(), http.StatusBadRequest)
+		http.Error(w, carterror.ErrItemIDRequired.Error(), http.StatusBadRequest)
 		return
 	}
 
 	err := h.cartItemService.RemoveFromCart(r.Context(), cartID, itemID)
 	if err != nil {
 		if err.Error() == "cart does not exist" {
-			http.Error(w, cart_errors.ErrCartDoesNotExist.Error(), http.StatusNotFound)
+			http.Error(w, carterror.ErrCartDoesNotExist.Error(), http.StatusNotFound)
 			return
 		}
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
